@@ -53,7 +53,7 @@ class GeneratePuzzleWindow(QtWidgets.QMainWindow, generatepuzzle.Ui_MainWindow):
         self.generate_puzzle_dialog = None
 
     def on_click_load(self):
-        filename = QtWidgets.QFileDialog.getOpenFileNames(self, caption="Choose a TXT puzzle to load",
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, caption="Choose a TXT puzzle to load",
                                                           dir="./", filter="Text files (*.txt)")
 
         """
@@ -66,9 +66,9 @@ class GeneratePuzzleWindow(QtWidgets.QMainWindow, generatepuzzle.Ui_MainWindow):
                 self.grid = Grid()
                 self.grid_brute = Grid()
                 self.grid_csp = Grid()
-                self.grid.load(filename[0][0])
-                self.grid_brute.load(filename[0][0])
-                self.grid_csp.load(filename[0][0])
+                self.grid.load(filename[0])
+                self.grid_brute.load(filename[0])
+                self.grid_csp.load(filename[0])
             except custom_exceptions.InvalidFileDataException as e:
                 QMessageBox.critical(self, e.__class__.__name__, e.args[0])
             else:
