@@ -1,7 +1,18 @@
+import math
 import random
 import time
 
-SOLVE_TIME_LIMIT = 120
+SOLVE_TIME_LIMIT = 5
+
+
+class Cell:
+    def __init__(self, row, col):
+        self.row = row
+        self.col = col
+
+    def __str__(self):
+        return f'({self.row}, {self.col})'
+
 
 class SudokuSolver:
     def solve(self, board: list, start_time):
@@ -9,8 +20,61 @@ class SudokuSolver:
 
 
 class CSPSolver(SudokuSolver):
+    def __init__(self):
+        self._board = []
+        self._size = 0
+        self._empty_cells = []
+        self._domains = {}
+        self._empty_cells_in_rows = {}
+        self._empty_cells_in_cols = {}
+        self._empty_cells_in_grids = {}
+        self._assignment = {}
+        self._start_time = None
+
     def solve(self, board: list, start_time):
-        return False
+        self._board = board
+        self._size = len(self._board)
+        self._find_empty_cells()
+        self._get_initial_domains()
+        self._start_time = time.time()
+        # return self._fill_cell()
+
+    def _find_empty_cells(self):
+        self._empty_cells_in_rows = {row: [] for row in range(self._size)}
+        self._empty_cells_in_cols = {col: [] for col in range(self._size)}
+        self._empty_cells_in_grids = {grid: [] for grid in range(self._size)}
+        subgrid_row = math.floor(self._size ** 0.5)
+        subgrid_col = self._size // subgrid_row
+        for row in range(self._size):
+            for col in range(self._size):
+                if self._board[row][col] == 0:
+                    grid_index = col // subgrid_col + row // subgrid_row * (self._size // subgrid_col)
+                    cell = Cell(row, col)
+                    self._empty_cells.append(cell)
+                    self._empty_cells_in_rows[row].append(cell)
+                    self._empty_cells_in_cols[col].append(cell)
+                    self._empty_cells_in_grids[grid_index].append(cell)
+                    self._assignment[cell] = 0
+
+    def _get_initial_domains(self):
+        for cell in self._empty_cells:
+            row = cell.row
+            col = cell.col
+            self._domains[cell] = set(range(1, n + 1)) - set(self._board[row]) - \
+                                  set([row[col] for row in self._board]) - set(self.get_subgrid(row, col))
+
+    def _fill_cell(self):
+        if time.time() - self._start_time > SOLVE_TIME_LIMIT:
+            return False
+        return self._board
+
+    def get_subgrid(self, row, col):
+        subgrid_row = math.floor(self._size ** 0.5)
+        subgrid_col = self._size // subgrid_row
+        row_start = (row // subgrid_row) * subgrid_row
+        col_start = (col // subgrid_col) * subgrid_col
+        return [self._board[i][j] for i in range(row_start, row_start + subgrid_row) for j in
+                range(col_start, col_start + subgrid_col)]
 
 
 class BruteForceSolver(SudokuSolver):
