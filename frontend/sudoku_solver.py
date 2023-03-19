@@ -6,9 +6,10 @@ SOLVE_TIME_LIMIT = 5
 
 
 class Cell:
-    def __init__(self, row, col):
+    def __init__(self, row, col, grid):
         self.row = row
         self.col = col
+        self.grid = grid
 
     def __str__(self):
         return f'({self.row}, {self.col})'
@@ -37,7 +38,7 @@ class CSPSolver(SudokuSolver):
         self._find_empty_cells()
         self._get_initial_domains()
         self._start_time = time.time()
-        # return self._fill_cell()
+        return self._fill_cell()
 
     def _find_empty_cells(self):
         self._empty_cells_in_rows = {row: [] for row in range(self._size)}
@@ -49,7 +50,7 @@ class CSPSolver(SudokuSolver):
             for col in range(self._size):
                 if self._board[row][col] == 0:
                     grid_index = col // subgrid_col + row // subgrid_row * (self._size // subgrid_col)
-                    cell = Cell(row, col)
+                    cell = Cell(row, col, grid_index)
                     self._empty_cells.append(cell)
                     self._empty_cells_in_rows[row].append(cell)
                     self._empty_cells_in_cols[col].append(cell)
@@ -66,7 +67,19 @@ class CSPSolver(SudokuSolver):
     def _fill_cell(self):
         if time.time() - self._start_time > SOLVE_TIME_LIMIT:
             return False
-        return self._board
+        if len(self._empty_cells) == 0:
+            return True
+        cell = self.select_cell()
+        self._empty_cells.remove(cell)
+        for value in self.arrange_value(cell):
+            self._assignment[cell] = value
+            original_domains = self._domains.copy()
+            if self.ac_3(cell) and self._fill_cell():
+                return True
+            self._assignment[cell] = 0
+            self._domains = original_domains
+        self._empty_cells.append(cell)
+        return False
 
     def get_subgrid(self, row, col):
         subgrid_row = math.floor(self._size ** 0.5)
@@ -75,6 +88,17 @@ class CSPSolver(SudokuSolver):
         col_start = (col // subgrid_col) * subgrid_col
         return [self._board[i][j] for i in range(row_start, row_start + subgrid_row) for j in
                 range(col_start, col_start + subgrid_col)]
+
+    def select_cell(self):
+        # MRV + degree
+        return self._empty_cells[0]
+
+    def arrange_value(self, cell):
+        # least restricting value
+        return self._domains[cell]
+
+    def ac_3(self, cell):
+        pass
 
 
 class BruteForceSolver(SudokuSolver):
