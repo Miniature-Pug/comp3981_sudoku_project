@@ -158,10 +158,24 @@ class LoadedSudokuWindow(QtWidgets.QMainWindow, loadedsudokuwindow.Ui_MainWindow
         print(worker.result)
         self.brute_window.update_widget(worker.result, worker.finished_status, worker.timer)
 
+    def grid_solved_csp(self, worker):
+        print(worker.result)
+        self.csp_window.update_widget(worker.result, worker.finished_status, worker.timer)
+
     def on_click_csp(self):
-        if self.csp_window is None:
-            self.csp_window = SolverWindow(self.grid.clone(), "CSP", CSPSolver())
+        if self.csp_window:
+            self.csp_window.close()
+        self.csp_window = SolverWindow(self.grid.clone(), "CSP", CSPSolver())
+
         self.csp_window.show()
+
+        self.csp_worker = Worker(self.csp_window.solve)
+        self.csp_worker.setAutoDelete(True)
+        self.csp_worker.signals.finished.connect(partial(self.grid_solved_csp, self.csp_worker))
+
+        self.csp_threadpool = QThreadPool()
+        self.csp_threadpool.setMaxThreadCount(1)
+        self.csp_threadpool.start(self.csp_worker)
 
     def on_click_go_back(self):
         node = Global_Window_DLL.get_node(self)
