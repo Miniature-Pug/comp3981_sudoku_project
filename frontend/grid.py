@@ -11,6 +11,8 @@ from custom_exceptions import InvalidFileDataException
 # from frontend.sudoku_generator import SudokuGenerator
 from sudoku_generator import SudokuGenerator
 
+from textwrap import wrap
+
 
 @dataclass
 class GridSize(enum.Enum):
@@ -71,22 +73,25 @@ class Block:
                                        block_col=j - (self.col * self.grid_size["block_cols"]),
                                        value=puzzle[i][j] if puzzle[i][j] != 0 else ""))
 
-    def load(self, sudoku_line: str):
+    def load(self, sudoku_line, puzzle):
         """
         Load a single sudoku puzzle to a block of cells.
 
-        :param sudoku_line: sudoku puzzle
+        :param puzzle: updating the list inside this method cuz otherwise would need to rework the entire logic
+        :param sudoku_line: str or list[str]
         """
         line_index = 0
         for i in range(self.row * self.grid_size["block_rows"],
                        self.row * self.grid_size["block_rows"] + self.grid_size["block_rows"]):
             for j in range(self.col * self.grid_size["block_cols"],
                            self.col * self.grid_size["block_cols"] + self.grid_size["block_cols"]):
+                val = self.__get_value(sudoku_line[line_index])
+                puzzle[self.block_num][j] = 0 if val == "" else int(val)
                 self.cells.append(Cell(row=i,
                                        col=j,
                                        block_row=i - (self.row * self.grid_size["block_rows"]),
                                        block_col=j - (self.col * self.grid_size["block_cols"]),
-                                       value=self.__get_value(sudoku_line[line_index])))
+                                       value=val))
                 line_index += 1
 
     @staticmethod
@@ -150,7 +155,7 @@ class Grid:
 
     def load(self, filename):
         """
-        Load all the sudoku puzzles in the given file if it's valid
+        Load all sudoku puzzles in the given file if it's valid
 
         :param filename: valid filepath
         :raises: InvalidFileDataException if the given file can't be used to parse sudoku puzzles
@@ -160,16 +165,44 @@ class Grid:
             if line == "":
                 raise InvalidFileDataException(filename)
             try:
-                if '.' in line:
+                if ',' in line:
+                    self.__load_with_commas(sudoku_grids, line)
+                elif '.' in line:
                     self.__load_linearly(sudoku_grids, line)
                 else:
                     self.__load_column_by_row(sudoku_grids, line)
             except IndexError:
                 raise InvalidFileDataException(filename)
 
+    def __load_with_commas(self, file_content: TextIO, first_line: str):
+        """
+
+        :param file_content: TextIO
+        :param first_line: str
+        """
+        side = len(first_line.strip('\n').replace(',', ''))
+        grid_size = side * side
+        first_line_values = first_line.strip('\n').split(',')
+        self.grid_size = {"blocks": grid_size, "block_rows": side, "block_cols": side}
+        self.puzzle = [[0] * side for _ in range(side)]
+        line = file_content.readline()
+        block_number = 0
+        while line != "":
+            while line != "" and '=' not in line:
+                first_line_values += line.strip('\n').split(',')
+                line = file_content.readline()
+            block = Block(self.grid_size, block_number)
+            block.load(first_line_values, self.puzzle)
+            self.blocks.append(block)
+            first_line_values = []
+            line = file_content.readline()
+            block_number += 1
+
+
+
     def __load_linearly(self, file_content: TextIO, first_line: str):
         """
-        Load sudoku puzzles from a file in the linear form of
+        Load sudoku puzzles from a file written in the linear form
         "4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......".
 
         :param file_content: TextIO
@@ -178,12 +211,13 @@ class Grid:
         grid_size = len(first_line.strip('\n'))
         side = floor(sqrt(grid_size))
         self.grid_size = {"blocks": grid_size, "block_rows": side, "block_cols": side}
+        self.puzzle = [[0] * side for _ in range(side)]
         first_block = Block(self.grid_size, 0)
-        first_block.load(first_line)
+        first_block.load(first_line, self.puzzle)
         self.blocks.append(first_block)
         for block_number, line in enumerate(file_content, start=1):
             block = Block({"blocks": grid_size, "block_rows": side, "block_cols": side}, block_number)
-            block.load(line.strip('\n'))
+            block.load(line.strip('\n'), self.puzzle)
             self.blocks.append(block)
 
     def __load_column_by_row(self, file_content: TextIO, first_line):
@@ -209,6 +243,7 @@ class Grid:
         side = len(first_line)
         grid_size = side * side
         self.grid_size = {"blocks": grid_size, "block_rows": side, "block_cols": side}
+        self.puzzle = [[0] * side for _ in range(side)]
         line = file_content.readline()
         block_number = 0
         while line != "":
@@ -216,7 +251,7 @@ class Grid:
                 first_line += line.strip('\n')
                 line = file_content.readline()
             block = Block(self.grid_size, block_number)
-            block.load(first_line)
+            block.load(first_line, self.puzzle)
             self.blocks.append(block)
             first_line = ""
             line = file_content.readline()
