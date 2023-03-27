@@ -186,19 +186,12 @@ class Grid:
         self.grid_size = {"blocks": grid_size, "block_rows": side, "block_cols": side}
         self.puzzle = [[0] * side for _ in range(side)]
         line = file_content.readline()
-        block_number = 0
-        while line != "":
-            while line != "" and '=' not in line:
-                first_line_values += line.strip('\n').split(',')
-                line = file_content.readline()
-            block = Block(self.grid_size, block_number)
-            block.load(first_line_values, self.puzzle)
-            self.blocks.append(block)
-            first_line_values = []
+        while line != "" and '=' not in line:
+            first_line_values += line.strip('\n').split(',')
             line = file_content.readline()
-            block_number += 1
-
-
+        block = Block(self.grid_size, 0)
+        block.load(first_line_values, self.puzzle)
+        self.blocks.append(block)
 
     def __load_linearly(self, file_content: TextIO, first_line: str):
         """
@@ -215,14 +208,10 @@ class Grid:
         first_block = Block(self.grid_size, 0)
         first_block.load(first_line, self.puzzle)
         self.blocks.append(first_block)
-        for block_number, line in enumerate(file_content, start=1):
-            block = Block({"blocks": grid_size, "block_rows": side, "block_cols": side}, block_number)
-            block.load(line.strip('\n'), self.puzzle)
-            self.blocks.append(block)
 
     def __load_column_by_row(self, file_content: TextIO, first_line):
         """
-        Load sudoku puzzles from a file in the linear form of
+        Load sudoku puzzles from a file in the linear form.
         "
         003020600
         900305001
@@ -245,14 +234,9 @@ class Grid:
         self.grid_size = {"blocks": grid_size, "block_rows": side, "block_cols": side}
         self.puzzle = [[0] * side for _ in range(side)]
         line = file_content.readline()
-        block_number = 0
-        while line != "":
-            while line != "" and '=' not in line:
-                first_line += line.strip('\n')
-                line = file_content.readline()
-            block = Block(self.grid_size, block_number)
-            block.load(first_line, self.puzzle)
-            self.blocks.append(block)
-            first_line = ""
+        while line != "" and '=' not in line:
+            first_line += line.strip('\n')
             line = file_content.readline()
-            block_number += 1
+        block = Block(self.grid_size, 0)
+        block.load(first_line, self.puzzle)
+        self.blocks.append(block)
